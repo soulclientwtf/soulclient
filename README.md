@@ -3,8 +3,8 @@ Phasmo Client - this is Hacked Client for GrimAC (like AresMine), based on Thund
 # ⚒️ Credits / Links
 ph4smobl4de, also thx min0r and Z1GA_MET
 Telegram Channel of Phasmo Client: https://t.me/phasmoclient
-ph4smobl4de: https://www.youtube.com/@ph4smobl4de
-min0r: https://www.youtube.com/channel/UCzm0Wzgw1_c_ArPeANZEI3w
+ph4smobl4de: https://www.youtube.com/@ph4smobl4de / https://t.me/shawtywantsme
+min0r: https://www.youtube.com/@min0rew
 Z1GA_MET: ??
 
 # 🖼️ ScreenShots
