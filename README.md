@@ -7,6 +7,9 @@ ph4smobl4de: https://www.youtube.com/@ph4smobl4de / https://t.me/shawtywantsme
 min0r: https://www.youtube.com/@min0rew
 Z1GA_MET: ??
 
+# ❓ How to Download?
+To run the client, you'll need Fabric API version 0.17.2 or higher. Add the Fabric API mod and Phasmo Client mod to "mods" folder, and run Minecraft on version 1.21 (Fabric).
+
 # 🖼️ ScreenShots
 
 HUD (With new watermark)
