@@ -140,6 +140,7 @@ public class ModuleManager implements IManager {
     public static ToolSaver toolSaver = new ToolSaver();
     public static WayPoints wayPoints = new WayPoints();
     public static WaterMark waterMark = new WaterMark();
+    public static WaterMarkNew waterMarkNew = new WaterMarkNew();
     public static ViewModel viewModel = new ViewModel();
     public static TunnelEsp tunnelEsp = new TunnelEsp();
     public static TickShift tickShift = new TickShift();
@@ -222,8 +223,6 @@ public class ModuleManager implements IManager {
     public static AntiAim antiAim = new AntiAim();
     public static AutoSex autoSex = new AutoSex();
     public static Tracers tracers = new Tracers();
-    public static Parkour parkour = new Parkour();
-    public static ClickTP clickTP = new ClickTP();
     public static BowPop bowPop = new BowPop();
     public static XCarry xCarry = new XCarry();
     public static Trails trails = new Trails();
@@ -274,6 +273,7 @@ public class ModuleManager implements IManager {
     public static TestFunction testfunction = new TestFunction();
     public static NoSlowNew noSlowNew = new NoSlowNew();
     public static GrimGlide grimGlide = new GrimGlide();
+    public static AuraAI auraAI = new AuraAI();
 
 
     public ModuleManager() {

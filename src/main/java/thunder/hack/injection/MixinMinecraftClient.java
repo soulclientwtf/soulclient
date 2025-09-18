@@ -81,6 +81,7 @@ public abstract class MixinMinecraftClient {
             FontRenderers.icons = FontRenderers.create(20, "icons");
             FontRenderers.mid_icons = FontRenderers.create(46, "icons");
             FontRenderers.big_icons = FontRenderers.create(72, "icons");
+            FontRenderers.zona_ultra = FontRenderers.create(16f, "zona_ultra");
         } catch (Exception e) {
             e.printStackTrace();
         }

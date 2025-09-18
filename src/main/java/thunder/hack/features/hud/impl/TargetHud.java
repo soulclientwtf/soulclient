@@ -26,6 +26,7 @@ import thunder.hack.gui.hud.HudEditorGui;
 import thunder.hack.features.hud.HudElement;
 import thunder.hack.features.modules.client.HudEditor;
 import thunder.hack.features.modules.combat.Aura;
+import thunder.hack.features.modules.combat.AuraAI;
 import thunder.hack.features.modules.combat.AutoAnchor;
 import thunder.hack.features.modules.combat.AutoCrystal;
 import thunder.hack.features.modules.misc.NameProtect;
@@ -143,6 +144,14 @@ public class TargetHud extends HudElement {
         } else if (Aura.target != null) {
             if (Aura.target instanceof LivingEntity) {
                 target = (LivingEntity) Aura.target;
+                direction = true;
+            } else {
+                target = null;
+                direction = false;
+            }
+        } else if (AuraAI.auraAITarget != null) {
+            if (AuraAI.auraAITarget instanceof LivingEntity) {
+                target = (LivingEntity) AuraAI.auraAITarget;
                 direction = true;
             } else {
                 target = null;

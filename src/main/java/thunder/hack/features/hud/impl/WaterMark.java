@@ -58,12 +58,11 @@ public class WaterMark extends HudElement {
             setBounds(getPosX(), getPosY(), 106, 30);
         } else if (mode.getValue() == Mode.Small) {
             if (HudEditor.hudStyle.is(HudEditor.HudStyle.Blurry)) {
-                float offset1 = FontRenderers.sf_bold.getStringWidth(username) + 72;
+                float offset1 = FontRenderers.sf_bold.getStringWidth(username) + 66;
                 float offset2 = FontRenderers.sf_bold.getStringWidth((mc.isInSingleplayer() ? "SinglePlayer" : mc.getNetworkHandler().getServerInfo().address));
                 float offset3 = (Managers.PROXY.isActive() ? FontRenderers.sf_bold.getStringWidth(Managers.PROXY.getActiveProxy().getName()) + 11 : 0);
 
-                Render2DEngine.drawRoundedBlur(context.getMatrices(), getPosX(), getPosY(), 50f, 15f, 3, HudEditor.blurColor.getValue().getColorObject());
-                Render2DEngine.drawRoundedBlur(context.getMatrices(), getPosX() + 55, getPosY(), offset1 + offset2 - 36 + offset3, 15f, 3, HudEditor.blurColor.getValue().getColorObject());
+                Render2DEngine.drawRoundedBlur(context.getMatrices(), getPosX(), getPosY(), 50f + offset1 + offset2 - 34 + offset3, 15f, 3, HudEditor.blurColor.getValue().getColorObject());
 
                 Render2DEngine.setupRender();
 
@@ -77,29 +76,29 @@ public class WaterMark extends HudElement {
                         HudEditor.getColor(270), HudEditor.getColor(0), HudEditor.getColor(180), HudEditor.getColor(90));
 
                 RenderSystem.setShaderTexture(0, TextureStorage.playerIcon);
-                Render2DEngine.renderGradientTexture(context.getMatrices(), getPosX() + 58, getPosY() + 3, 8, 8, 0, 0, 128, 128, 128, 128,
+                Render2DEngine.renderGradientTexture(context.getMatrices(), getPosX() + 52, getPosY() + 3, 8, 8, 0, 0, 128, 128, 128, 128,
                         HudEditor.getColor(270), HudEditor.getColor(0), HudEditor.getColor(180), HudEditor.getColor(90));
 
                 RenderSystem.setShaderTexture(0, TextureStorage.serverIcon);
-                Render2DEngine.renderGradientTexture(context.getMatrices(), getPosX() + offset1, getPosY() + 2, 10, 10, 0, 0, 128, 128, 128, 128,
+                Render2DEngine.renderGradientTexture(context.getMatrices(), getPosX() + offset1 - 1, getPosY() + 2, 10, 10, 0, 0, 128, 128, 128, 128,
                         HudEditor.getColor(270), HudEditor.getColor(0), HudEditor.getColor(180), HudEditor.getColor(90));
 
                 if (Managers.PROXY.isActive()) {
                     RenderSystem.setShaderTexture(0, TextureStorage.proxyIcon);
-                    Render2DEngine.renderGradientTexture(context.getMatrices(), getPosX() + offset1 + offset2 + 16, getPosY() + 2, 10, 10, 0, 0, 128, 128, 128, 128,
+                    Render2DEngine.renderGradientTexture(context.getMatrices(), getPosX() + offset1 + offset2 + 15, getPosY() + 2, 10, 10, 0, 0, 128, 128, 128, 128,
                             HudEditor.getColor(270), HudEditor.getColor(0), HudEditor.getColor(180), HudEditor.getColor(90));
 
-                    FontRenderers.sf_bold.drawString(context.getMatrices(), Managers.PROXY.getActiveProxy().getName(), getPosX() + offset1 + offset2 + 28, getPosY() + 5, -1);
+                    FontRenderers.sf_bold.drawString(context.getMatrices(), Managers.PROXY.getActiveProxy().getName(), getPosX() + offset1 + offset2 + 27, getPosY() + 5, -1);
                 }
 
                 Render2DEngine.endRender();
 
                 Render2DEngine.setupRender();
                 RenderSystem.defaultBlendFunc();
-                FontRenderers.sf_bold.drawString(context.getMatrices(), username, getPosX() + 68, getPosY() + 4.5f, HudEditor.textColor.getValue().getColor());
-                FontRenderers.sf_bold.drawString(context.getMatrices(), (mc.isInSingleplayer() ? "SinglePlayer" : mc.getNetworkHandler().getServerInfo().address), getPosX() + offset1 + 13, getPosY() + 4.5f, HudEditor.textColor.getValue().getColor());
+                FontRenderers.sf_bold.drawString(context.getMatrices(), username, getPosX() + 62, getPosY() + 4.5f, HudEditor.textColor.getValue().getColor());
+                FontRenderers.sf_bold.drawString(context.getMatrices(), (mc.isInSingleplayer() ? "SinglePlayer" : mc.getNetworkHandler().getServerInfo().address), getPosX() + offset1 + 12, getPosY() + 4.5f, HudEditor.textColor.getValue().getColor());
                 Render2DEngine.endRender();
-                setBounds(getPosX(), getPosY(), 100, 15f);
+                setBounds(getPosX(), getPosY(), 50f + offset1 + offset2 - 34 + offset3, 15f);
             } else {
                 String info = Formatting.DARK_GRAY + "| " + Formatting.RESET + username + Formatting.DARK_GRAY + " | " + Formatting.RESET + Managers.SERVER.getPing() + " ms" + Formatting.DARK_GRAY + " | " + Formatting.RESET + (mc.isInSingleplayer() ? "SinglePlayer" : mc.getNetworkHandler().getServerInfo().address);
                 float width = FontRenderers.sf_bold.getStringWidth("phasmoclient " + info) + 5;

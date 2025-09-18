@@ -25,6 +25,7 @@ public class FontRenderers {
     public static FontRenderer sf_medium_modules;
     public static FontRenderer minecraft;
     public static FontRenderer profont;
+    public static FontRenderer zona_ultra;
 
     public static FontRenderer getModulesRenderer() {
         return modules;

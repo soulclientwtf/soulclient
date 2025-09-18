@@ -27,6 +27,8 @@ import net.minecraft.network.packet.s2c.play.PlayerPositionLookS2CPacket;
 import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.*;
+import net.minecraft.util.hit.HitResult;
+import net.minecraft.world.RaycastContext;
 import org.jetbrains.annotations.NotNull;
 import thunder.hack.ThunderHack;
 import thunder.hack.core.Core;
@@ -76,6 +78,8 @@ public class Aura extends Module {
     public final Setting<Integer> fov = new Setting<>("FOV", 180, 1, 180);
     public final Setting<Mode> rotationMode = new Setting<>("RotationMode", Mode.None);
     public final Setting<Integer> interactTicks = new Setting<>("InteractTicks", 3, 1, 10, v -> rotationMode.getValue() == Mode.Interact);
+    
+    
     public final Setting<Switch> switchMode = new Setting<>("AutoWeapon", Switch.None);
     public final Setting<Boolean> onlyWeapon = new Setting<>("OnlyWeapon", false, v -> switchMode.getValue() != Switch.Silent);
     public final Setting<BooleanSettingGroup> smartCrit = new Setting<>("SmartCrit", new BooleanSettingGroup(true));
@@ -151,17 +155,41 @@ public class Aura extends Module {
     /*   AUTOMACE   */
     public final Setting<SettingGroup> autoMace = new Setting<>("AutoMace", new SettingGroup(false, 0));
     public final Setting<Boolean> enableAutoMace = new Setting<>("EnableAutoMace", false).addToGroup(autoMace);
+    public final Setting<AutoMaceMode> autoMaceMode = new Setting<>("AutoMaceMode", AutoMaceMode.LITE, v -> enableAutoMace.getValue()).addToGroup(autoMace);
     public final Setting<Float> minHeight = new Setting<>("MinHeight", 1.5f, 0.5f, 10.0f, v -> enableAutoMace.getValue()).addToGroup(autoMace);
     public final Setting<Float> maxDistance = new Setting<>("MaxDistance", 5.0f, 1.0f, 8.0f, v -> enableAutoMace.getValue()).addToGroup(autoMace);
     public final Setting<Boolean> onlyWhenFalling = new Setting<>("OnlyWhenFalling", false, v -> enableAutoMace.getValue()).addToGroup(autoMace);
     public final Setting<Boolean> returnToSword = new Setting<>("ReturnToSword", true, v -> enableAutoMace.getValue()).addToGroup(autoMace);
     public final Setting<Integer> maceHoldTime = new Setting<>("MaceHoldTime", 1000, 100, 5000, v -> enableAutoMace.getValue()).addToGroup(autoMace);
+    
+    // Настройки для режима Strong
+    public final Setting<Float> strongMinHeight = new Setting<>("StrongMinHeight", 2.0f, 1.0f, 10.0f, v -> enableAutoMace.getValue() && autoMaceMode.getValue() == AutoMaceMode.STRONG).addToGroup(autoMace);
+    public final Setting<Float> strongMaxDistance = new Setting<>("StrongMaxDistance", 4.0f, 1.0f, 8.0f, v -> enableAutoMace.getValue() && autoMaceMode.getValue() == AutoMaceMode.STRONG).addToGroup(autoMace);
+    public final Setting<Integer> strongSwitchDelay = new Setting<>("StrongSwitchDelay", 200, 50, 1000, v -> enableAutoMace.getValue() && autoMaceMode.getValue() == AutoMaceMode.STRONG).addToGroup(autoMace);
+    public final Setting<Integer> strongAttackDelay = new Setting<>("StrongAttackDelay", 100, 50, 500, v -> enableAutoMace.getValue() && autoMaceMode.getValue() == AutoMaceMode.STRONG).addToGroup(autoMace);
+    public final Setting<Boolean> strongRandomizeTiming = new Setting<>("StrongRandomizeTiming", true, v -> enableAutoMace.getValue() && autoMaceMode.getValue() == AutoMaceMode.STRONG).addToGroup(autoMace);
+    
+    // Дополнительные настройки для максимальной легитности
+    public final Setting<Boolean> strongHumanBehavior = new Setting<>("StrongHumanBehavior", true, v -> enableAutoMace.getValue() && autoMaceMode.getValue() == AutoMaceMode.STRONG).addToGroup(autoMace);
+    public final Setting<Float> strongMissChance = new Setting<>("StrongMissChance", 0.15f, 0.0f, 0.5f, v -> enableAutoMace.getValue() && autoMaceMode.getValue() == AutoMaceMode.STRONG && strongHumanBehavior.getValue()).addToGroup(autoMace);
+    public final Setting<Integer> strongMaxAttacksPerSession = new Setting<>("StrongMaxAttacks", 2, 1, 5, v -> enableAutoMace.getValue() && autoMaceMode.getValue() == AutoMaceMode.STRONG).addToGroup(autoMace);
+    public final Setting<Boolean> strongLookAtTarget = new Setting<>("StrongLookAtTarget", true, v -> enableAutoMace.getValue() && autoMaceMode.getValue() == AutoMaceMode.STRONG).addToGroup(autoMace);
+    public final Setting<Float> strongLookSpeed = new Setting<>("StrongLookSpeed", 0.3f, 0.1f, 1.0f, v -> enableAutoMace.getValue() && autoMaceMode.getValue() == AutoMaceMode.STRONG && strongLookAtTarget.getValue()).addToGroup(autoMace);
+    public final Setting<Boolean> strongPauseOnMovement = new Setting<>("StrongPauseOnMovement", true, v -> enableAutoMace.getValue() && autoMaceMode.getValue() == AutoMaceMode.STRONG).addToGroup(autoMace);
+    
+    // Дополнительные настройки плавности наводки
+    public final Setting<Boolean> smoothAiming = new Setting<>("SmoothAiming", true, v -> enableAutoMace.getValue() && strongLookAtTarget.getValue()).addToGroup(autoMace);
+    public final Setting<Float> aimSmoothness = new Setting<>("AimSmoothness", 0.8f, 0.1f, 2.0f, v -> enableAutoMace.getValue() && strongLookAtTarget.getValue() && smoothAiming.getValue()).addToGroup(autoMace);
+    public final Setting<Boolean> adaptiveSpeed = new Setting<>("AdaptiveSpeed", true, v -> enableAutoMace.getValue() && strongLookAtTarget.getValue() && smoothAiming.getValue()).addToGroup(autoMace);
+    public final Setting<Float> jitterIntensity = new Setting<>("JitterIntensity", 0.3f, 0.0f, 1.0f, v -> enableAutoMace.getValue() && strongLookAtTarget.getValue() && smoothAiming.getValue()).addToGroup(autoMace);
 
     public static Entity target;
 
     public float rotationYaw;
     public float rotationPitch;
     public float pitchAcceleration = 1f;
+    
+    
 
     private Vec3d rotationPoint = Vec3d.ZERO;
     private Vec3d rotationMotion = Vec3d.ZERO;
@@ -175,6 +203,22 @@ public class Aura extends Module {
     private boolean wasUsingMace = false;
     private long maceSwitchTime = 0;
     private boolean maceAttackDone = false;
+    
+    // Поля для режима Strong
+    private long lastSwitchTime = 0;
+    private long lastAttackTime = 0;
+    private boolean strongModeReady = false;
+    private int strongAttackCount = 0;
+    
+    // Поля для человеческого поведения
+    private boolean isLookingAtTarget = false;
+    private float targetLookYaw = 0f;
+    private float targetLookPitch = 0f;
+    private long lastMovementTime = 0;
+    private boolean wasMoving = false;
+    private int consecutiveMisses = 0;
+    private long lastMissTime = 0;
+    private boolean shouldMissNext = false;
 
     private final Timer delayTimer = new Timer();
     private final Timer pauseTimer = new Timer();
@@ -218,6 +262,7 @@ public class Aura extends Module {
             calcRotations(autoCrit());
             readyForAttack = autoCrit() && (lookingAtHitbox || skipRayTraceCheck());
         }
+        
 
         if (readyForAttack) {
             if (shieldBreaker(false))
@@ -251,19 +296,165 @@ public class Aura extends Module {
     private boolean shouldUseMace() {
         if (!enableAutoMace.getValue() || target == null) return false;
         
+        // Выбираем параметры в зависимости от режима
+        float currentMinHeight = autoMaceMode.getValue() == AutoMaceMode.STRONG ? strongMinHeight.getValue() : minHeight.getValue();
+        float currentMaxDistance = autoMaceMode.getValue() == AutoMaceMode.STRONG ? strongMaxDistance.getValue() : maxDistance.getValue();
+        
         // Проверяем, что игрок выше цели на минимальную высоту
         double heightDifference = mc.player.getY() - target.getY();
-        if (heightDifference < minHeight.getValue()) return false;
+        if (heightDifference < currentMinHeight) return false;
         
-        // Проверяем расстояние до цели
-        double distance = mc.player.squaredDistanceTo(target.getPos());
-        if (distance > maxDistance.getValue() * maxDistance.getValue()) return false;
+        // СТРОГАЯ проверка расстояния до цели с использованием ползунков
+        double distance = mc.player.distanceTo(target);
+        float maxAllowedDistance = getRange(); // Используем дистанцию из ползунка Range
         
-        // Проверяем, что игрок падает (если включено) - делаем условие менее строгим
+        // Дополнительная проверка для через стены
+        if (wallRange.getValue() > 0) {
+            HitResult hitResult = mc.world.raycast(new RaycastContext(
+                mc.player.getEyePos(),
+                target.getBoundingBox().getCenter(),
+                RaycastContext.ShapeType.COLLIDER,
+                RaycastContext.FluidHandling.NONE,
+                mc.player
+            ));
+            
+            if (hitResult.getType() != HitResult.Type.MISS) {
+                // Если есть препятствие, используем дистанцию через стены
+                maxAllowedDistance = getWallRange();
+            }
+        }
+        
+        // Строгая проверка дистанции
+        if (distance > maxAllowedDistance) return false;
+        
+        // Проверяем, что игрок падает (если включено)
         if (onlyWhenFalling.getValue() && mc.player.getVelocity().y > 0.1) return false;
+        
+        // Дополнительные проверки для режима Strong
+        if (autoMaceMode.getValue() == AutoMaceMode.STRONG) {
+            // Проверяем задержки для более легитного поведения
+            long currentTime = System.currentTimeMillis();
+            
+            // Минимальная задержка между переключениями
+            if (currentTime - lastSwitchTime < strongSwitchDelay.getValue()) return false;
+            
+            // Минимальная задержка между атаками
+            if (currentTime - lastAttackTime < strongAttackDelay.getValue()) return false;
+            
+            // Рандомизация для обхода детекции
+            if (strongRandomizeTiming.getValue()) {
+                int randomDelay = (int) (strongSwitchDelay.getValue() * (0.8 + Math.random() * 0.4)); // ±20% рандомизация
+                if (currentTime - lastSwitchTime < randomDelay) return false;
+            }
+        }
         
         return true;
     }
+    
+    private boolean isPlayerMoving() {
+        if (mc.player == null) return false;
+        return mc.player.input.movementForward != 0 || mc.player.input.movementSideways != 0 || 
+               mc.player.input.jumping || mc.player.input.sneaking;
+    }
+    
+    private void updateHumanBehavior() {
+        if (!strongHumanBehavior.getValue() || autoMaceMode.getValue() != AutoMaceMode.STRONG) return;
+        
+        // Отслеживаем движение игрока
+        boolean currentlyMoving = isPlayerMoving();
+        if (currentlyMoving && !wasMoving) {
+            lastMovementTime = System.currentTimeMillis();
+        }
+        wasMoving = currentlyMoving;
+        
+        // Обновляем взгляд на цель
+        if (strongLookAtTarget.getValue() && target != null && wasUsingMace) {
+            updateLookAtTarget();
+        }
+        
+        // Определяем, нужно ли промахнуться
+        if (shouldMissNext && System.currentTimeMillis() - lastMissTime > 2000) {
+            shouldMissNext = false;
+        }
+    }
+    
+    private void updateLookAtTarget() {
+        if (target == null) return;
+        
+        // Плавно поворачиваем голову к цели
+        float[] targetRotation = Managers.PLAYER.calcAngle(target.getPos().add(0, target.getEyeHeight(target.getPose()) / 2f, 0));
+        
+        float deltaYaw = wrapDegrees(targetRotation[0] - mc.player.getYaw());
+        float deltaPitch = targetRotation[1] - mc.player.getPitch();
+        
+        // Базовая скорость поворота
+        float lookSpeed = strongLookSpeed.getValue();
+        
+        if (smoothAiming.getValue()) {
+            // Адаптивная скорость в зависимости от расстояния до цели
+            float distance = (float) mc.player.distanceTo(target);
+            float currentSpeed = lookSpeed;
+            
+            if (adaptiveSpeed.getValue()) {
+                currentSpeed = Math.min(lookSpeed, Math.max(0.1f, lookSpeed * (1.0f - distance / 10.0f)));
+            }
+            
+            // Интерполяция с учетом FPS и настройки плавности
+            float deltaTime = 1.0f / 20.0f; // Фиксированная дельта времени для стабильности
+            float smoothness = aimSmoothness.getValue();
+            float smoothFactor = Math.min(1.0f, currentSpeed * deltaTime * 20.0f * smoothness);
+            
+            // Применяем плавную интерполяцию
+            float newYaw = mc.player.getYaw() + deltaYaw * smoothFactor;
+            float newPitch = mc.player.getPitch() + deltaPitch * smoothFactor;
+            
+            // Добавляем джиттер для реалистичности с настраиваемой интенсивностью
+            if (distance < 3.0f) {
+                float jitter = jitterIntensity.getValue();
+                newYaw += random(-0.3f * jitter, 0.3f * jitter);
+                newPitch += random(-0.2f * jitter, 0.2f * jitter);
+            }
+            
+            // Плавное ограничение pitch
+            newPitch = MathHelper.clamp(newPitch, -90f, 90f);
+            
+            mc.player.setYaw(newYaw);
+            mc.player.setPitch(newPitch);
+        } else {
+            // Простая наводка без дополнительной плавности
+            float newYaw = mc.player.getYaw() + deltaYaw * lookSpeed;
+            float newPitch = mc.player.getPitch() + deltaPitch * lookSpeed;
+            
+            // Добавляем небольшой джиттер для реалистичности
+            newYaw += random(-0.5f, 0.5f);
+            newPitch += random(-0.3f, 0.3f);
+            
+            mc.player.setYaw(newYaw);
+            mc.player.setPitch(MathHelper.clamp(newPitch, -90f, 90f));
+        }
+    }
+    
+    private boolean shouldMissAttack() {
+        if (!strongHumanBehavior.getValue()) return false;
+        
+        // Базовая вероятность промаха
+        if (Math.random() < strongMissChance.getValue()) {
+            shouldMissNext = true;
+            lastMissTime = System.currentTimeMillis();
+            consecutiveMisses++;
+            return true;
+        }
+        
+        // Дополнительные факторы промаха
+        if (consecutiveMisses > 0 && Math.random() < 0.3) {
+            consecutiveMisses = 0;
+            return true;
+        }
+        
+        return false;
+    }
+    
+    
 
     private void handleAutoMace() {
         if (!enableAutoMace.getValue()) return;
@@ -271,6 +462,14 @@ public class Aura extends Module {
         boolean shouldUse = shouldUseMace();
         long currentTime = System.currentTimeMillis();
 
+        if (autoMaceMode.getValue() == AutoMaceMode.LITE) {
+            handleLiteMode(shouldUse, currentTime);
+        } else {
+            handleStrongMode(shouldUse, currentTime);
+        }
+    }
+    
+    private void handleLiteMode(boolean shouldUse, long currentTime) {
         if (shouldUse && !wasUsingMace) {
             // Переключаемся на булаву
             SearchInvResult maceResult = InventoryUtility.getMaceHotBar();
@@ -282,8 +481,31 @@ public class Aura extends Module {
                 maceSwitchTime = currentTime;
                 maceAttackDone = false;
                 
-                // Принудительная атака булавой
+                // Принудительная атака булавой с проверкой дистанции
                 if (hitTicks <= 0) {
+                    // Дополнительная проверка дистанции перед атакой булавой
+                    double distance = mc.player.distanceTo(target);
+                    float maxAllowedDistance = getRange();
+                    
+                    if (distance <= maxAllowedDistance) {
+                        hitTicks = getHitTicks();
+                        boolean[] playerState = preAttack();
+                        ModuleManager.criticals.doCrit();
+                        mc.interactionManager.attackEntity(mc.player, target);
+                        swingHand();
+                        postAttack(playerState[0], playerState[1]);
+                        maceAttackDone = true;
+                    }
+                }
+            }
+        } else if (wasUsingMace) {
+            // Дополнительная атака булавой, если не атаковали еще
+            if (!maceAttackDone && hitTicks <= 0 && target != null) {
+                // Дополнительная проверка дистанции перед атакой булавой
+                double distance = mc.player.distanceTo(target);
+                float maxAllowedDistance = getRange();
+                
+                if (distance <= maxAllowedDistance) {
                     hitTicks = getHitTicks();
                     boolean[] playerState = preAttack();
                     ModuleManager.criticals.doCrit();
@@ -292,17 +514,6 @@ public class Aura extends Module {
                     postAttack(playerState[0], playerState[1]);
                     maceAttackDone = true;
                 }
-            }
-        } else if (wasUsingMace) {
-            // Дополнительная атака булавой, если не атаковали еще
-            if (!maceAttackDone && hitTicks <= 0 && target != null) {
-                hitTicks = getHitTicks();
-                boolean[] playerState = preAttack();
-                ModuleManager.criticals.doCrit();
-                mc.interactionManager.attackEntity(mc.player, target);
-                swingHand();
-                postAttack(playerState[0], playerState[1]);
-                maceAttackDone = true;
             }
             
             // Проверяем, нужно ли вернуться к мечу
@@ -326,6 +537,116 @@ public class Aura extends Module {
                 wasUsingMace = false;
                 maceSwitchTime = 0;
                 maceAttackDone = false;
+            }
+        }
+    }
+    
+    private void handleStrongMode(boolean shouldUse, long currentTime) {
+        // Обновляем человеческое поведение
+        updateHumanBehavior();
+        
+        // Проверяем, нужно ли приостановить из-за движения
+        if (strongPauseOnMovement.getValue() && isPlayerMoving() && 
+            currentTime - lastMovementTime < 500) {
+            return;
+        }
+        
+        if (shouldUse && !wasUsingMace) {
+            // Переключаемся на булаву с задержкой
+            SearchInvResult maceResult = InventoryUtility.getMaceHotBar();
+            if (maceResult.found() && target != null) {
+                previousSlot = mc.player.getInventory().selectedSlot;
+                
+                // Плавное переключение для обхода детекции
+                if (currentTime - lastSwitchTime >= strongSwitchDelay.getValue()) {
+                    maceResult.switchTo();
+                    sendPacket(new UpdateSelectedSlotC2SPacket(maceResult.slot()));
+                    wasUsingMace = true;
+                    maceSwitchTime = currentTime;
+                    lastSwitchTime = currentTime;
+                    maceAttackDone = false;
+                    strongModeReady = true;
+                    strongAttackCount = 0;
+                    isLookingAtTarget = true;
+                }
+            }
+        } else if (wasUsingMace && strongModeReady) {
+            // Атака с задержкой и рандомизацией
+            if (currentTime - lastAttackTime >= strongAttackDelay.getValue() && hitTicks <= 0 && target != null) {
+                // Рандомизация атаки
+                if (strongRandomizeTiming.getValue()) {
+                    int randomDelay = (int) (strongAttackDelay.getValue() * (0.8 + Math.random() * 0.4));
+                    if (currentTime - lastAttackTime < randomDelay) return;
+                }
+                
+                // Проверяем, нужно ли промахнуться
+                boolean shouldMiss = shouldMissAttack();
+                
+                if (!shouldMiss) {
+                    // Дополнительная проверка дистанции перед атакой булавой
+                    double distance = mc.player.distanceTo(target);
+                    float maxAllowedDistance = getRange();
+                    
+                    if (distance <= maxAllowedDistance) {
+                        hitTicks = getHitTicks();
+                        boolean[] playerState = preAttack();
+                        ModuleManager.criticals.doCrit();
+                        mc.interactionManager.attackEntity(mc.player, target);
+                        swingHand();
+                        postAttack(playerState[0], playerState[1]);
+                        maceAttackDone = true;
+                        lastAttackTime = currentTime;
+                        strongAttackCount++;
+                        
+                        // Сбрасываем счетчик промахов при успешной атаке
+                        consecutiveMisses = 0;
+                    } else {
+                        // Если дистанция слишком большая, имитируем промах
+                        swingHand();
+                        lastAttackTime = currentTime;
+                        consecutiveMisses++;
+                        lastMissTime = currentTime;
+                    }
+                } else {
+                    // Имитируем промах - просто качаем рукой
+                    swingHand();
+                    lastAttackTime = currentTime;
+                }
+                
+                // Ограничиваем количество атак для легитности
+                if (strongAttackCount >= strongMaxAttacksPerSession.getValue()) {
+                    strongModeReady = false;
+                }
+            }
+            
+            // Проверяем, нужно ли вернуться к мечу
+            boolean shouldReturn = false;
+            
+            if (returnToSword.getValue()) {
+                // Более консервативное возвращение для режима Strong
+                if (currentTime - maceSwitchTime >= maceHoldTime.getValue() * 1.5f) {
+                    shouldReturn = true;
+                } else if (!shouldUse && currentTime - maceSwitchTime >= 1000) {
+                    shouldReturn = true;
+                } else if (strongAttackCount >= strongMaxAttacksPerSession.getValue()) {
+                    shouldReturn = true;
+                }
+            }
+            
+            if (shouldReturn && previousSlot != -1) {
+                // Плавное возвращение
+                if (currentTime - lastSwitchTime >= strongSwitchDelay.getValue()) {
+                    mc.player.getInventory().selectedSlot = previousSlot;
+                    sendPacket(new UpdateSelectedSlotC2SPacket(previousSlot));
+                    previousSlot = -1;
+                    wasUsingMace = false;
+                    maceSwitchTime = 0;
+                    maceAttackDone = false;
+                    strongModeReady = false;
+                    strongAttackCount = 0;
+                    lastSwitchTime = currentTime;
+                    isLookingAtTarget = false;
+                }
             }
         }
     }
@@ -458,7 +779,7 @@ public class Aura extends Module {
         if (!haveWeapon())
             return;
 
-        if (target != null && rotationMode.getValue() != Mode.None && rotationMode.getValue() != Mode.Grim) {
+        if (target != null && rotationMode.getValue() != Mode.None) {
             mc.player.setYaw(rotationYaw);
             mc.player.setPitch(rotationPitch);
         } else {
@@ -508,6 +829,7 @@ public class Aura extends Module {
         rotationYaw = mc.player.getYaw();
         rotationPitch = mc.player.getPitch();
         delayTimer.reset();
+        
     }
 
     private boolean autoCrit() {
@@ -616,6 +938,7 @@ public class Aura extends Module {
     }
 
     private void calcRotations(boolean ready) {
+        
         if (ready) {
             trackticks = (mc.world.getBlockCollisions(mc.player, mc.player.getBoundingBox().expand(-0.25, 0.0, -0.25).offset(0.0, 1, 0.0)).iterator().hasNext() ? 1 : interactTicks.getValue());
         } else if (trackticks > 0) {
@@ -643,13 +966,23 @@ public class Aura extends Module {
         float delta_pitch = ((float) (-Math.toDegrees(Math.atan2(targetVec.y - (mc.player.getPos().y + mc.player.getEyeHeight(mc.player.getPose())), Math.sqrt(Math.pow((targetVec.x - mc.player.getX()), 2) + Math.pow(targetVec.z - mc.player.getZ(), 2))))) - rotationPitch);
 
         // Добавляем рандомизацию для обхода Grim
-        float yawStep = rotationMode.getValue() != Mode.Ares ? 360f : random(minYawStep.getValue(), maxYawStep.getValue()) + random(-2f, 2f); // Джиттер
-        float pitchStep = rotationMode.getValue() != Mode.Ares ? 180f : Managers.PLAYER.ticksElytraFlying > 5 ? 180 : (pitchAcceleration + random(-1.5f, 1.5f)); // Джиттер
-
-        // Для Grim убираем ускорение при атаке — оно слишком предсказуемо
-        if (ready) {
-            yawStep = random(40f, 50f); // Фиксированный небольшой шаг
-            pitchStep = random(15f, 25f);
+        float yawStep, pitchStep;
+        
+        if (rotationMode.getValue() == Mode.Ares) {
+            yawStep = random(minYawStep.getValue(), maxYawStep.getValue()) + random(-2f, 2f);
+            pitchStep = Managers.PLAYER.ticksElytraFlying > 5 ? 180 : (pitchAcceleration + random(-1.5f, 1.5f));
+        } else if (rotationMode.getValue() == Mode.Grim) {
+            // Для Grim убираем ускорение при атаке — оно слишком предсказуемо
+            if (ready) {
+                yawStep = random(40f, 50f); // Фиксированный небольшой шаг
+                pitchStep = random(15f, 25f);
+            } else {
+                yawStep = 360f;
+                pitchStep = 180f;
+            }
+        } else {
+            yawStep = 360f;
+            pitchStep = 180f;
         }
 
         if (delta_yaw > 180)
@@ -668,7 +1001,7 @@ public class Aura extends Module {
 
         double gcdFix = (Math.pow(mc.options.getMouseSensitivity().getValue() * 0.6 + 0.2, 3.0)) * 1.2;
 
-        if (trackticks > 0 || rotationMode.getValue() == Mode.Ares) {
+        if (trackticks > 0 || rotationMode.getValue() == Mode.Ares || rotationMode.getValue() == Mode.Grim) {
             rotationYaw = (float) (newYaw - (newYaw - rotationYaw) % gcdFix);
             rotationPitch = (float) (newPitch - (newPitch - rotationPitch) % gcdFix);
         } else {
@@ -715,6 +1048,24 @@ public class Aura extends Module {
         wasUsingMace = false;
         maceSwitchTime = 0;
         maceAttackDone = false;
+        
+        // Сброс состояния режима Strong
+        lastSwitchTime = 0;
+        lastAttackTime = 0;
+        strongModeReady = false;
+        strongAttackCount = 0;
+        
+        // Сброс человеческого поведения
+        isLookingAtTarget = false;
+        targetLookYaw = 0f;
+        targetLookPitch = 0f;
+        lastMovementTime = 0;
+        wasMoving = false;
+        consecutiveMisses = 0;
+        lastMissTime = 0;
+        shouldMissNext = false;
+        
+        
     }
 
     public float getSquaredRotateDistance() {
@@ -1059,6 +1410,10 @@ public class Aura extends Module {
 
     public enum WallsBypass {
         Off, V1, V2
+    }
+    
+    public enum AutoMaceMode {
+        LITE, STRONG
     }
 }
 

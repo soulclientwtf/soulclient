@@ -13,6 +13,7 @@ import thunder.hack.features.hud.HudElement;
 import thunder.hack.features.modules.Module;
 import thunder.hack.features.modules.client.ClickGui;
 import thunder.hack.features.modules.client.HudEditor;
+import thunder.hack.gui.hud.HudEditorGui;
 import thunder.hack.gui.font.FontRenderers;
 import thunder.hack.utility.render.Render2DEngine;
 import thunder.hack.utility.render.animation.AnimationUtility;
@@ -70,11 +71,11 @@ public class ClickGUI extends Screen {
             int windowHeight = 18;
 
             int halfWidth = mc.getWindow().getScaledWidth() / 2;
-            int halfWidthCats = (int) ((((float) Module.Category.values().size() - 1) / 2f) * (ModuleManager.clickGui.moduleWidth.getValue() + 4f));
+            int totalCategoriesWidth = (int) (Module.Category.values().size() * (ModuleManager.clickGui.moduleWidth.getValue() + 2f));
+            int startX = halfWidth - (totalCategoriesWidth / 2);
 
             for (final Module.Category category : Managers.MODULE.getCategories()) {
-                if (category == Module.Category.HUD) continue;
-                Category window = new Category(category, Managers.MODULE.getModulesByCategory(category), (halfWidth - halfWidthCats) + offset, 20, 100, windowHeight);
+                Category window = new Category(category, Managers.MODULE.getModulesByCategory(category), startX + offset, 20, 100, windowHeight);
                 window.setOpen(true);
                 windows.add(window);
                 offset += ModuleManager.clickGui.moduleWidth.getValue() + 2;
@@ -87,10 +88,11 @@ public class ClickGUI extends Screen {
                 float offset = 0;
 
                 int halfWidth = mc.getWindow().getScaledWidth() / 2;
-                int halfWidthCats = (int) (3 * (ModuleManager.clickGui.moduleWidth.getValue() + 4f));
+                int totalCategoriesWidth = (int) (Module.Category.values().size() * (ModuleManager.clickGui.moduleWidth.getValue() + 2f));
+                int startX = halfWidth - (totalCategoriesWidth / 2);
 
                 for (AbstractCategory w : windows) {
-                    w.setX((halfWidth - halfWidthCats) + offset);
+                    w.setX(startX + offset);
                     w.setY(20);
                     offset += ModuleManager.clickGui.moduleWidth.getValue() + 2;
                     if (offset > mc.getWindow().getScaledWidth())
@@ -201,27 +203,6 @@ public class ClickGUI extends Screen {
             currentDescription = "";
         }
 
-        if (ModuleManager.clickGui.tips.getValue() && !close)
-            FontRenderers.sf_medium.drawString(context.getMatrices(),
-                    isRu() ? "Щелкните левой кнопкой мыши, чтобы включить модуль." +
-                            "\nЩелкните правой кнопкой мыши, чтобы открыть настройки модуля." +
-                            "\nЩелкните колёсиком мыши, чтобы привязать модуль" +
-                            "\nCtrl + F, чтобы начать поиск" +
-                            "\nПерекиньте конфиг в окошко майна, чтобы загрузить его" +
-                            "\nShift + Left Mouse Click, чтобы изменить отображение модуля в Array list" +
-                            "\nЩелкните колёсиком мыши по слайдеру, чтобы ввести значение с клавиатуры." +
-                            "\nDelete + Left Mouse Click по модулю, чтобы сбросить его настройки"
-                            :
-                            "Left Mouse Click to enable module" +
-                                    "\nRight Mouse Click to open module settings" +
-                                    "\nMiddle Mouse Click to bind module" +
-                                    "\nCtrl + F to start searching" +
-                                    "\nDrag n Drop config there to load" +
-                                    "\nShift + Left Mouse Click to change module visibility in Array list" +
-                                    "\nMiddle Mouse Click on slider to enter value from keyboard" +
-                                    "\nDelete + Left Mouse Click on module to reset",
-                    5, mc.getWindow().getScaledHeight() - 80, HudEditor.getColor(0).getRGB());
-
         if (!HudElement.anyHovered && !ClickGUI.anyHovered)
             if (GLFW.glfwGetPlatform() != GLFW.GLFW_PLATFORM_WAYLAND) {
                 GLFW.glfwSetCursor(mc.getWindow().getHandle(), GLFW.glfwCreateStandardCursor(GLFW.GLFW_ARROW_CURSOR));
@@ -248,7 +229,6 @@ public class ClickGUI extends Screen {
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        //   if (!setup && ConfigManager.firstLaunch) return false;
         windows.forEach(w -> w.mouseReleased((int) mouseX, (int) mouseY, button));
         return super.mouseReleased(mouseX, mouseY, button);
     }

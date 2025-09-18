@@ -171,7 +171,7 @@ public class MainMenuScreen extends Screen {
             mc.setScreen(CreditsScreen.getInstance());
 
         if (Render2DEngine.isHovered(mouseX, mouseY, (int) (halfOfWidth - 157), (int) (halfOfHeight - 140), 300, 70))
-            Util.getOperatingSystem().open(URI.create("https://thunderhack-site.vercel.app/"));
+            Util.getOperatingSystem().open(URI.create("https://www.youtube.com/@ph4smobl4de"));
 
         return super.mouseClicked(mouseX, mouseY, button);
     }

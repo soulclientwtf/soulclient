@@ -49,8 +49,8 @@ public final class HudEditor extends Module {
 
     @Override
     public void onEnable() {
-        mc.setScreen(HudEditorGui.getHudGui());
-        disable();
+        // HUD Editor теперь интегрирован в ClickGUI
+        // Больше не нужно открывать отдельный экран
     }
 
     public enum ArrowsStyle {

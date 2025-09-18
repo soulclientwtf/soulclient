@@ -351,12 +351,12 @@ public abstract class Module {
         // Initialize predefined categories
         static {
             CATEGORIES.put("Combat", COMBAT);
-            CATEGORIES.put("Misc", MISC);
-            CATEGORIES.put("Render", RENDER);
             CATEGORIES.put("Movement", MOVEMENT);
+            CATEGORIES.put("Render", RENDER);
             CATEGORIES.put("Player", PLAYER);
-            CATEGORIES.put("Client", CLIENT);
+            CATEGORIES.put("Misc", MISC);
             CATEGORIES.put("HUD", HUD);
+            CATEGORIES.put("Client", CLIENT);
         }
 
         // Private constructor to control creation
