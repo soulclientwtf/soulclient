@@ -1,14 +1,17 @@
 # 🪽 Phasmo Client >> Beta
 Phasmo Client - this is Hacked Minecraft Client for GrimAC (like AresMine), based on ThunderHack Recode (https://github.com/Pan4ur/ThunderHack-Recode)
 # ⚒️ Credits / Links
-ph4smobl4de, also thx min0r and Z1GA_MET
-Telegram Channel of Phasmo Client: https://t.me/phasmoclient
-ph4smobl4de: https://www.youtube.com/@ph4smobl4de / https://t.me/shawtywantsme
-min0r: https://www.youtube.com/@min0rew
-Z1GA_MET: ??
+- ph4smobl4de, also thx min0r and Z1GA_MET
+- Telegram Channel of Phasmo Client: https://t.me/phasmoclient
+- ph4smobl4de: https://www.youtube.com/@ph4smobl4de / https://t.me/shawtywantsme
+- min0r: https://www.youtube.com/@min0rew
+- Z1GA_MET: ??
 
 # ❓ How to Download?
-To run the client, you'll need Fabric API version 0.17.2 or higher. Add the Fabric API mod and Phasmo Client mod to "mods" folder, and run Minecraft on version 1.21 (Fabric).
+> [!WARNING]
+To run client, you needed
+- [Fabric-Api 1.21](https://www.curseforge.com/minecraft/mc-mods/fabric-api/files/5531908)
+- [Java 21+](https://www.oracle.com/java/technologies/javase/jdk21-archive-downloads.html)
 
 # 🖼️ ScreenShots
 
